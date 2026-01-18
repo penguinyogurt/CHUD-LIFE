@@ -192,7 +192,8 @@ export function ControlsHint() {
     >
       <div style={{ marginBottom: '5px', fontWeight: 'bold', color: '#e94560' }}>Controls</div>
       <div>WASD / Arrows - Move</div>
-      <div>Space - Attack</div>
+      <div>Space - Jump</div>
+      <div>R - Attack</div>
       <div>E - Special Attack</div>
       <div>Q - Emote</div>
     </div>

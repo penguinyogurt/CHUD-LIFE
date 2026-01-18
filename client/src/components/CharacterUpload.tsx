@@ -4,44 +4,127 @@ import { useGLTF, OrbitControls, Environment } from '@react-three/drei';
 import { useGameStore } from '../stores/gameStore';
 import * as THREE from 'three';
 
-// Cursor glow effect component
-function CursorGlow() {
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setPosition({ x: e.clientX, y: e.clientY });
-      setIsVisible(true);
-    };
-
-    const handleMouseLeave = () => setIsVisible(false);
-
-    window.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseleave', handleMouseLeave);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseleave', handleMouseLeave);
-    };
-  }, []);
-
+// Animated background grid
+function BackgroundGrid() {
   return (
-    <div
-      style={{
-        position: 'fixed',
-        left: position.x,
-        top: position.y,
-        width: '400px',
-        height: '400px',
-        transform: 'translate(-50%, -50%)',
-        background: 'radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%)',
+    <div style={{
+      position: 'absolute',
+      inset: 0,
+      overflow: 'hidden',
+      opacity: 0.15,
+      pointerEvents: 'none',
+    }}>
+      <div style={{
+        position: 'absolute',
+        inset: '-50%',
+        backgroundImage: `
+          linear-gradient(rgba(34, 197, 94, 0.3) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(34, 197, 94, 0.3) 1px, transparent 1px)
+        `,
+        backgroundSize: '60px 60px',
+        transform: 'perspective(500px) rotateX(60deg)',
+        animation: 'gridScroll 20s linear infinite',
+      }} />
+    </div>
+  );
+}
+
+// Scan lines overlay
+function ScanLines() {
+  return (
+    <div style={{
+      position: 'absolute',
+      inset: 0,
+      background: `repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.15) 2px,
+        rgba(0, 0, 0, 0.15) 4px
+      )`,
+      pointerEvents: 'none',
+      zIndex: 100,
+    }} />
+  );
+}
+
+// Glitch text component
+function GlitchTitle() {
+  return (
+    <div style={{
+      position: 'relative',
+      display: 'inline-block',
+    }}>
+      <h1 style={{
+        fontSize: 'clamp(4rem, 12vw, 10rem)',
+        fontFamily: "'Bebas Neue', 'Impact', sans-serif",
+        fontWeight: 400,
+        color: '#ffffff',
+        margin: 0,
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+        lineHeight: 0.9,
+        textShadow: `
+          0 0 20px rgba(34, 197, 94, 0.8),
+          0 0 40px rgba(34, 197, 94, 0.4),
+          0 0 80px rgba(34, 197, 94, 0.2)
+        `,
+        animation: 'textFlicker 4s infinite',
+      }}>
+        Chud
+        <span style={{
+          display: 'block',
+          color: '#22c55e',
+          textShadow: `
+            0 0 20px rgba(34, 197, 94, 1),
+            0 0 40px rgba(34, 197, 94, 0.8),
+            0 0 80px rgba(34, 197, 94, 0.4),
+            4px 4px 0 #000
+          `,
+        }}>Life</span>
+      </h1>
+      {/* Glitch layers */}
+      <div aria-hidden="true" style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        fontSize: 'clamp(4rem, 12vw, 10rem)',
+        fontFamily: "'Bebas Neue', 'Impact', sans-serif",
+        fontWeight: 400,
+        color: '#00ffff',
+        margin: 0,
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+        lineHeight: 0.9,
+        clipPath: 'polygon(0 0, 100% 0, 100% 45%, 0 45%)',
+        transform: 'translate(-3px, 0)',
+        opacity: 0,
+        animation: 'glitch1 3s infinite',
         pointerEvents: 'none',
-        zIndex: 0,
-        opacity: isVisible ? 1 : 0,
-        transition: 'opacity 0.3s ease',
-      }}
-    />
+      }}>
+        Chud<span style={{ display: 'block' }}>Life</span>
+      </div>
+      <div aria-hidden="true" style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        fontSize: 'clamp(4rem, 12vw, 10rem)',
+        fontFamily: "'Bebas Neue', 'Impact', sans-serif",
+        fontWeight: 400,
+        color: '#00ff88',
+        margin: 0,
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+        lineHeight: 0.9,
+        clipPath: 'polygon(0 55%, 100% 55%, 100% 100%, 0 100%)',
+        transform: 'translate(3px, 0)',
+        opacity: 0,
+        animation: 'glitch2 3s infinite',
+        pointerEvents: 'none',
+      }}>
+        Chud<span style={{ display: 'block' }}>Life</span>
+      </div>
+    </div>
   );
 }
 
@@ -57,8 +140,8 @@ function RotatingMannequin() {
         child.receiveShadow = true;
         if (child.material) {
           const mat = child.material as THREE.MeshStandardMaterial;
-          mat.emissive = new THREE.Color(0x222233);
-          mat.emissiveIntensity = 0.1;
+          mat.emissive = new THREE.Color(0x003322);
+          mat.emissiveIntensity = 0.15;
         }
       }
     });
@@ -66,38 +149,40 @@ function RotatingMannequin() {
 
   useFrame((_, delta) => {
     if (groupRef.current) {
-      groupRef.current.rotation.y += delta * 0.3;
+      groupRef.current.rotation.y += delta * 0.25;
     }
   });
 
   return (
-    <group ref={groupRef} position={[0, -1.3, 0]} scale={2.8}>
+    <group ref={groupRef} position={[0, -1.2, 0]} scale={2.6}>
       <primitive object={scene} />
     </group>
   );
 }
 
-// Floating particles effect
+// Enhanced floating particles
 function FloatingParticles() {
   const particlesRef = useRef<THREE.Points>(null);
-  const count = 50;
+  const count = 80;
 
   const positions = useRef(new Float32Array(count * 3));
+  const velocities = useRef(new Float32Array(count));
 
   useEffect(() => {
     for (let i = 0; i < count; i++) {
-      positions.current[i * 3] = (Math.random() - 0.5) * 6;
-      positions.current[i * 3 + 1] = (Math.random() - 0.5) * 6;
-      positions.current[i * 3 + 2] = (Math.random() - 0.5) * 6;
+      positions.current[i * 3] = (Math.random() - 0.5) * 8;
+      positions.current[i * 3 + 1] = (Math.random() - 0.5) * 8;
+      positions.current[i * 3 + 2] = (Math.random() - 0.5) * 8;
+      velocities.current[i] = Math.random() * 0.5 + 0.5;
     }
   }, []);
 
-  useFrame((_, delta) => {
+  useFrame((state) => {
     if (particlesRef.current) {
-      particlesRef.current.rotation.y += delta * 0.05;
+      particlesRef.current.rotation.y = state.clock.elapsedTime * 0.02;
       const posArray = particlesRef.current.geometry.attributes.position.array as Float32Array;
       for (let i = 0; i < count; i++) {
-        posArray[i * 3 + 1] += Math.sin(Date.now() * 0.001 + i) * 0.002;
+        posArray[i * 3 + 1] += Math.sin(state.clock.elapsedTime * velocities.current[i] + i) * 0.003;
       }
       particlesRef.current.geometry.attributes.position.needsUpdate = true;
     }
@@ -114,10 +199,10 @@ function FloatingParticles() {
         />
       </bufferGeometry>
       <pointsMaterial
-        size={0.03}
-        color="#ffffff"
+        size={0.04}
+        color="#22c55e"
         transparent
-        opacity={0.4}
+        opacity={0.6}
         sizeAttenuation
       />
     </points>
@@ -135,225 +220,222 @@ function CLITerminal({ messages }: { messages: string[] }) {
   }, [messages]);
 
   return (
-    <div style={styles.terminal}>
-      <div style={styles.terminalHeader}>
-        <div style={styles.terminalDots}>
-          <span style={{ ...styles.dot, background: '#ff5f56' }} />
-          <span style={{ ...styles.dot, background: '#ffbd2e' }} />
-          <span style={{ ...styles.dot, background: '#27c93f' }} />
+    <div style={{
+      width: '100%',
+      maxWidth: '480px',
+      height: '400px',
+      borderRadius: '4px',
+      overflow: 'hidden',
+      background: 'rgba(0, 0, 0, 0.9)',
+      border: '1px solid rgba(34, 197, 94, 0.4)',
+      boxShadow: '0 0 40px rgba(34, 197, 94, 0.2), inset 0 0 60px rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      flexDirection: 'column',
+    }}>
+      <div style={{
+        padding: '12px 16px',
+        background: 'rgba(34, 197, 94, 0.1)',
+        borderBottom: '1px solid rgba(34, 197, 94, 0.3)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+      }}>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#22c55e' }} />
+          <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#22c55e', opacity: 0.5 }} />
+          <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#22c55e', opacity: 0.3 }} />
         </div>
-        <span style={styles.terminalTitle}>chudlife-generator</span>
+        <span style={{
+          fontSize: '11px',
+          color: '#22c55e',
+          fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+        }}>CHUD_GENESIS.exe</span>
       </div>
-      <div ref={terminalRef} style={styles.terminalBody}>
+      <div ref={terminalRef} style={{
+        flex: 1,
+        padding: '16px',
+        overflowY: 'auto',
+        fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+        fontSize: '13px',
+        lineHeight: 1.7,
+      }}>
         {messages.map((msg, i) => (
-          <div key={i} style={styles.terminalLine}>
-            <span style={styles.terminalPrompt}>{'>'}</span>
-            <span style={styles.terminalText}>{msg}</span>
+          <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '4px' }}>
+            <span style={{ color: '#22c55e' }}>▸</span>
+            <span style={{ color: 'rgba(255, 255, 255, 0.85)' }}>{msg}</span>
           </div>
         ))}
-        <div style={styles.terminalCursor}>_</div>
+        <div style={{ color: '#22c55e', animation: 'blink 1s step-end infinite' }}>█</div>
       </div>
     </div>
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100vh',
-    background: '#000000',
-    fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif",
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  header: {
-    padding: '20px 40px',
-    flexShrink: 0,
-  },
-  title: {
-    fontSize: '1.5rem',
-    fontWeight: 700,
-    color: '#ffffff',
-    margin: 0,
-    letterSpacing: '0.1em',
-  },
-  main: {
-    flex: 1,
-    display: 'flex',
-    padding: '0 40px 30px',
-    gap: '30px',
-    minHeight: 0,
-  },
-  leftPanel: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-    zIndex: 1,
-  },
-  rightPanel: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-    zIndex: 1,
-  },
-  uploadBox: {
-    width: '100%',
-    maxWidth: '320px',
-    height: 'min(60vh, 420px)',
-    borderRadius: '16px',
-    overflow: 'hidden',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    position: 'relative',
-    background: 'linear-gradient(145deg, #1a1a1a 0%, #0a0a0a 100%)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  uploadBoxHover: {
-    border: '1px solid rgba(255, 255, 255, 0.3)',
-    boxShadow: '0 0 40px rgba(255, 255, 255, 0.1)',
-  },
-  uploadContent: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '12px',
-    color: 'rgba(255, 255, 255, 0.5)',
-  },
-  uploadIcon: {
-    fontSize: '40px',
-    opacity: 0.6,
-  },
-  uploadText: {
-    fontSize: '13px',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.15em',
-  },
-  previewImage: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover' as const,
-  },
-  canvasContainer: {
-    width: '100%',
-    maxWidth: '400px',
-    height: 'min(55vh, 380px)',
-    position: 'relative',
-  },
-  mannequinGlow: {
-    position: 'absolute',
-    top: '-20px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    width: '180px',
-    height: '180px',
-    background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.12) 0%, transparent 70%)',
-    pointerEvents: 'none',
-    zIndex: 1,
-  },
-  loadButton: {
-    marginTop: '20px',
-    padding: '14px 40px',
-    fontSize: '14px',
-    fontWeight: 600,
-    fontFamily: "'Inter', -apple-system, sans-serif",
-    letterSpacing: '0.1em',
-    textTransform: 'uppercase' as const,
-    color: '#000000',
-    background: 'linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%)',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    boxShadow: '0 4px 20px rgba(255, 255, 255, 0.2)',
-  },
-  loadButtonDisabled: {
-    opacity: 0.4,
-    cursor: 'not-allowed',
-    boxShadow: 'none',
-  },
-  playIcon: {
-    width: 0,
-    height: 0,
-    borderTop: '6px solid transparent',
-    borderBottom: '6px solid transparent',
-    borderLeft: '10px solid #000000',
-  },
-  terminal: {
-    width: '100%',
-    maxWidth: '320px',
-    height: 'min(60vh, 420px)',
-    borderRadius: '12px',
-    overflow: 'hidden',
-    background: '#1a1a1a',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  terminalHeader: {
-    padding: '10px 14px',
-    background: '#2a2a2a',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    flexShrink: 0,
-  },
-  terminalDots: {
-    display: 'flex',
-    gap: '5px',
-  },
-  dot: {
-    width: '10px',
-    height: '10px',
-    borderRadius: '50%',
-  },
-  terminalTitle: {
-    fontSize: '11px',
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-  },
-  terminalBody: {
-    flex: 1,
-    padding: '14px',
-    overflowY: 'auto' as const,
-    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-    fontSize: '12px',
-    lineHeight: 1.5,
-  },
-  terminalLine: {
-    display: 'flex',
-    gap: '8px',
-    marginBottom: '3px',
-  },
-  terminalPrompt: {
-    color: '#27c93f',
-  },
-  terminalText: {
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  terminalCursor: {
-    color: '#27c93f',
-    animation: 'blink 1s step-end infinite',
-  },
-  error: {
-    color: '#ff5f56',
-    marginTop: '12px',
-    fontSize: '13px',
-    textAlign: 'center' as const,
-  },
-};
+// Animated upload zone
+function UploadZone({
+  preview,
+  isHovering,
+  onHover,
+  onClick
+}: {
+  preview: string | null;
+  isHovering: boolean;
+  onHover: (hovering: boolean) => void;
+  onClick: () => void;
+}) {
+  return (
+    <div
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      onMouseEnter={() => onHover(true)}
+      onMouseLeave={() => onHover(false)}
+      role="button"
+      tabIndex={0}
+      style={{
+        width: '100%',
+        maxWidth: '320px',
+        aspectRatio: '3/4',
+        borderRadius: '4px',
+        overflow: 'hidden',
+        cursor: 'pointer',
+        position: 'relative',
+        background: 'rgba(0, 0, 0, 0.6)',
+        border: isHovering
+          ? '2px solid rgba(34, 197, 94, 0.8)'
+          : '2px dashed rgba(34, 197, 94, 0.3)',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        boxShadow: isHovering
+          ? '0 0 60px rgba(34, 197, 94, 0.3), inset 0 0 60px rgba(34, 197, 94, 0.1)'
+          : 'none',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
+      {/* Corner accents */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '30px',
+        height: '30px',
+        borderTop: '3px solid #22c55e',
+        borderLeft: '3px solid #22c55e',
+      }} />
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        width: '30px',
+        height: '30px',
+        borderTop: '3px solid #22c55e',
+        borderRight: '3px solid #22c55e',
+      }} />
+      <div style={{
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        width: '30px',
+        height: '30px',
+        borderBottom: '3px solid #22c55e',
+        borderLeft: '3px solid #22c55e',
+      }} />
+      <div style={{
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        width: '30px',
+        height: '30px',
+        borderBottom: '3px solid #22c55e',
+        borderRight: '3px solid #22c55e',
+      }} />
+
+      {preview ? (
+        <>
+          <img
+            src={preview}
+            alt="Preview"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
+          <div style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            padding: '20px',
+            background: 'linear-gradient(transparent, rgba(0,0,0,0.9))',
+            textAlign: 'center',
+          }}>
+            <span style={{
+              fontSize: '11px',
+              color: '#22c55e',
+              fontFamily: "'JetBrains Mono', monospace",
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+            }}>TARGET ACQUIRED</span>
+          </div>
+        </>
+      ) : (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '20px',
+          padding: '40px',
+        }}>
+          <div style={{
+            width: '80px',
+            height: '80px',
+            border: '2px solid rgba(34, 197, 94, 0.5)',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.3s ease',
+            transform: isHovering ? 'scale(1.1)' : 'scale(1)',
+          }}>
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#22c55e"
+              strokeWidth="1.5"
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              fontSize: '12px',
+              color: '#22c55e',
+              fontFamily: "'JetBrains Mono', monospace",
+              letterSpacing: '0.2em',
+              textTransform: 'uppercase',
+              marginBottom: '8px',
+            }}>Upload Target</div>
+            <div style={{
+              fontSize: '11px',
+              color: 'rgba(255, 255, 255, 0.4)',
+              fontFamily: "'JetBrains Mono', monospace",
+            }}>Drop image or click</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function CharacterUpload() {
   const [image, setImage] = useState<File | null>(null);
@@ -361,6 +443,7 @@ export function CharacterUpload() {
   const [isHovering, setIsHovering] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [cliMessages, setCliMessages] = useState<string[]>([]);
+  const [buttonHover, setButtonHover] = useState(false);
 
   const {
     error,
@@ -492,85 +575,215 @@ export function CharacterUpload() {
   };
 
   return (
-    <div style={styles.container}>
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: '100vh',
+      background: '#000000',
+      fontFamily: "'Inter', system-ui, sans-serif",
+      overflow: 'hidden',
+      position: 'relative',
+    }}
+    onDrop={handleDrop}
+    onDragOver={(e) => {
+      e.preventDefault();
+      setIsHovering(true);
+    }}
+    onDragLeave={() => setIsHovering(false)}
+    >
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap');
+
         @keyframes blink {
           50% { opacity: 0; }
         }
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        @keyframes gridScroll {
+          0% { transform: perspective(500px) rotateX(60deg) translateY(0); }
+          100% { transform: perspective(500px) rotateX(60deg) translateY(60px); }
+        }
+
+        @keyframes textFlicker {
+          0%, 100% { opacity: 1; }
+          92% { opacity: 1; }
+          93% { opacity: 0.8; }
+          94% { opacity: 1; }
+          96% { opacity: 0.9; }
+          97% { opacity: 1; }
+        }
+
+        @keyframes glitch1 {
+          0%, 100% { opacity: 0; transform: translate(-3px, 0); }
+          7% { opacity: 0.8; transform: translate(3px, 0); }
+          10% { opacity: 0; transform: translate(-3px, 0); }
+          27% { opacity: 0; }
+          30% { opacity: 0.6; transform: translate(-5px, 0); }
+          35% { opacity: 0; }
+        }
+
+        @keyframes glitch2 {
+          0%, 100% { opacity: 0; transform: translate(3px, 0); }
+          17% { opacity: 0.7; transform: translate(-3px, 0); }
+          20% { opacity: 0; }
+          47% { opacity: 0; }
+          50% { opacity: 0.5; transform: translate(5px, 0); }
+          55% { opacity: 0; }
+        }
+
+        @keyframes pulse {
+          0%, 100% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.4), 0 0 40px rgba(34, 197, 94, 0.2); }
+          50% { box-shadow: 0 0 30px rgba(34, 197, 94, 0.6), 0 0 60px rgba(34, 197, 94, 0.3); }
+        }
+
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
       `}</style>
 
-      <CursorGlow />
+      <BackgroundGrid />
+      <ScanLines />
 
-      <header style={styles.header}>
-        <h1 style={styles.title}>Chud Life</h1>
-      </header>
+      {/* Vignette overlay */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.7) 100%)',
+        pointerEvents: 'none',
+        zIndex: 1,
+      }} />
 
-      <main style={styles.main}>
-        {/* Left Panel - Upload or CLI */}
-        <div style={styles.leftPanel}>
-          {!isGenerating ? (
-            <div
-              style={{
-                ...styles.uploadBox,
-                ...(isHovering ? styles.uploadBoxHover : {}),
-              }}
-              onClick={() => document.getElementById('fileInput')?.click()}
-              onDrop={handleDrop}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setIsHovering(true);
-              }}
-              onDragLeave={() => setIsHovering(false)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  document.getElementById('fileInput')?.click();
-                }
-              }}
-              role="button"
-              tabIndex={0}
-            >
-              {preview ? (
-                <img src={preview} alt="Preview" style={styles.previewImage} />
-              ) : (
-                <div style={styles.uploadContent}>
-                  <div style={styles.uploadIcon}>+</div>
-                  <div style={styles.uploadText}>Upload Photo</div>
-                </div>
-              )}
-              <input
-                id="fileInput"
-                type="file"
-                accept="image/*"
-                onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-                style={{ display: 'none' }}
-              />
-            </div>
-          ) : (
-            <CLITerminal messages={cliMessages} />
-          )}
-          {error && <div style={styles.error}>{error}</div>}
+      {/* Red glow accent */}
+      <div style={{
+        position: 'absolute',
+        top: '-20%',
+        right: '-10%',
+        width: '60%',
+        height: '60%',
+        background: 'radial-gradient(ellipse at center, rgba(34, 197, 94, 0.15) 0%, transparent 60%)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+
+      {/* Main content */}
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        position: 'relative',
+        zIndex: 10,
+        padding: '40px',
+      }}>
+        {/* Left side - Title and info */}
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          paddingRight: '40px',
+          animation: 'slideUp 0.8s ease-out',
+        }}>
+          <GlitchTitle />
+
+          <p style={{
+            fontSize: '14px',
+            color: 'rgba(255, 255, 255, 0.5)',
+            fontFamily: "'JetBrains Mono', monospace",
+            letterSpacing: '0.05em',
+            lineHeight: 1.8,
+            maxWidth: '400px',
+            marginTop: '40px',
+            marginBottom: '40px',
+          }}>
+            Upload your photo. Become the fighter.<br/>
+            AI-generated combat avatars for the arena.
+          </p>
+
+          {/* Status indicators */}
+          <div style={{
+            display: 'flex',
+            gap: '30px',
+            marginTop: '20px',
+          }}>
+            {[
+              { label: 'PIPELINE', status: 'READY' },
+              { label: 'ARENA', status: 'ONLINE' },
+              { label: 'SYSTEM', status: 'ACTIVE' },
+            ].map((item) => (
+              <div key={item.label} style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+              }}>
+                <span style={{
+                  fontSize: '10px',
+                  color: 'rgba(255, 255, 255, 0.3)',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  letterSpacing: '0.15em',
+                }}>{item.label}</span>
+                <span style={{
+                  fontSize: '11px',
+                  color: '#22c55e',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  letterSpacing: '0.1em',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}>
+                  <span style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    background: '#22c55e',
+                    boxShadow: '0 0 10px #22c55e',
+                    animation: 'blink 2s infinite',
+                  }} />
+                  {item.status}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Right Panel - Mannequin */}
-        <div style={styles.rightPanel}>
-          <div style={styles.mannequinGlow} />
-          <div style={styles.canvasContainer}>
+        {/* Center - 3D Preview */}
+        <div style={{
+          width: '400px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          animation: 'slideUp 0.8s ease-out 0.2s both',
+        }}>
+          {/* Hexagonal frame effect */}
+          <div style={{
+            position: 'absolute',
+            width: '300px',
+            height: '300px',
+            border: '1px solid rgba(34, 197, 94, 0.2)',
+            borderRadius: '50%',
+            animation: 'pulse 3s infinite',
+          }} />
+
+          <div style={{
+            width: '100%',
+            height: '450px',
+            position: 'relative',
+          }}>
             <Canvas
-              camera={{ position: [0, 0, 4.5], fov: 50 }}
+              camera={{ position: [0, 0, 4], fov: 50 }}
               style={{ background: 'transparent' }}
             >
-              <ambientLight intensity={0.4} />
-              <directionalLight position={[5, 5, 5]} intensity={0.8} />
-              <directionalLight position={[-5, 3, -5]} intensity={0.3} />
+              <ambientLight intensity={0.3} />
+              <directionalLight position={[5, 5, 5]} intensity={0.6} color="#ffffff" />
+              <directionalLight position={[-3, 3, -3]} intensity={0.3} color="#22c55e" />
               <spotLight
-                position={[0, 5, 0]}
-                intensity={0.5}
-                angle={0.5}
+                position={[0, 6, 0]}
+                intensity={0.8}
+                angle={0.4}
                 penumbra={1}
-                color="#ffffff"
+                color="#22c55e"
               />
+              <pointLight position={[0, -2, 2]} intensity={0.3} color="#22c55e" />
               <Suspense fallback={null}>
                 <RotatingMannequin />
                 <FloatingParticles />
@@ -586,29 +799,137 @@ export function CharacterUpload() {
             </Canvas>
           </div>
 
+          {/* Platform line */}
+          <div style={{
+            width: '200px',
+            height: '2px',
+            background: 'linear-gradient(90deg, transparent, #22c55e, transparent)',
+            marginTop: '-40px',
+          }} />
+        </div>
+
+        {/* Right side - Upload zone */}
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingLeft: '40px',
+          animation: 'slideUp 0.8s ease-out 0.4s both',
+        }}>
+          {!isGenerating ? (
+            <>
+              <UploadZone
+                preview={preview}
+                isHovering={isHovering}
+                onHover={setIsHovering}
+                onClick={() => document.getElementById('fileInput')?.click()}
+              />
+              <input
+                id="fileInput"
+                type="file"
+                accept="image/*"
+                onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+                style={{ display: 'none' }}
+              />
+            </>
+          ) : (
+            <CLITerminal messages={cliMessages} />
+          )}
+
+          {error && (
+            <div style={{
+              color: '#22c55e',
+              marginTop: '20px',
+              fontSize: '12px',
+              fontFamily: "'JetBrains Mono', monospace",
+              textAlign: 'center',
+              padding: '12px 20px',
+              background: 'rgba(34, 197, 94, 0.1)',
+              border: '1px solid rgba(34, 197, 94, 0.3)',
+              borderRadius: '4px',
+            }}>{error}</div>
+          )}
+
+          {/* Generate button */}
           <button
-            style={{
-              ...styles.loadButton,
-              ...(!image || isGenerating ? styles.loadButtonDisabled : {}),
-            }}
             onClick={handleLoad}
             disabled={!image || isGenerating}
-            onMouseEnter={(e) => {
-              if (image && !isGenerating) {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 6px 30px rgba(255, 255, 255, 0.3)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 20px rgba(255, 255, 255, 0.2)';
+            onMouseEnter={() => setButtonHover(true)}
+            onMouseLeave={() => setButtonHover(false)}
+            style={{
+              marginTop: '40px',
+              padding: '18px 60px',
+              fontSize: '13px',
+              fontWeight: 600,
+              fontFamily: "'JetBrains Mono', monospace",
+              letterSpacing: '0.2em',
+              textTransform: 'uppercase',
+              color: (!image || isGenerating) ? 'rgba(255, 255, 255, 0.3)' : '#000000',
+              background: (!image || isGenerating)
+                ? 'transparent'
+                : buttonHover
+                  ? '#ffffff'
+                  : '#22c55e',
+              border: (!image || isGenerating)
+                ? '1px solid rgba(255, 255, 255, 0.2)'
+                : buttonHover
+                  ? '1px solid #ffffff'
+                  : '1px solid #22c55e',
+              borderRadius: '0',
+              cursor: (!image || isGenerating) ? 'not-allowed' : 'pointer',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: (!image || isGenerating)
+                ? 'none'
+                : buttonHover
+                  ? '0 0 40px rgba(255, 255, 255, 0.4)'
+                  : '0 0 30px rgba(34, 197, 94, 0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
             }}
           >
-            <span style={styles.playIcon} />
-            Load
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M8 5v14l11-7z" />
+            </svg>
+            Initialize
           </button>
         </div>
-      </main>
+      </div>
+
+      {/* Bottom bar */}
+      <div style={{
+        padding: '20px 40px',
+        borderTop: '1px solid rgba(34, 197, 94, 0.2)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        position: 'relative',
+        zIndex: 10,
+      }}>
+        <span style={{
+          fontSize: '10px',
+          color: 'rgba(255, 255, 255, 0.3)',
+          fontFamily: "'JetBrains Mono', monospace",
+          letterSpacing: '0.1em',
+        }}>
+          CHUDLIFE v1.0 // COMBAT ARENA
+        </span>
+        <span style={{
+          fontSize: '10px',
+          color: 'rgba(255, 255, 255, 0.3)',
+          fontFamily: "'JetBrains Mono', monospace",
+          letterSpacing: '0.1em',
+        }}>
+          POWERED BY AI GENESIS
+        </span>
+      </div>
     </div>
   );
 }

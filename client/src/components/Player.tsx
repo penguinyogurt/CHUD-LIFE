@@ -160,10 +160,8 @@ export function Player({ modelUrl, position = [0, 2, 0] }: PlayerProps) {
     <RigidBody
       ref={rigidBodyRef}
       position={position}
+      type="kinematicPosition"
       enabledRotations={[false, true, false]}
-      linearDamping={5}
-      angularDamping={5}
-      lockRotations
     >
       <CapsuleCollider args={[0.2, 0.15]} position={[0, 0.35, 0]} />
       <group position={[0, 0, 0]}>

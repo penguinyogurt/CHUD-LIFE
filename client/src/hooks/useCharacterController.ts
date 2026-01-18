@@ -12,10 +12,13 @@ interface KeyState {
   attack: boolean;
   special: boolean;
   emote: boolean;
+  jump: boolean;
 }
 
-const MOVE_SPEED = 1.5; // Adjusted for smaller character scale
+const MOVE_SPEED = 5; // Movement speed (units per second)
 const ROTATION_SPEED = 10;
+const JUMP_VELOCITY = 8;
+const GRAVITY = 20;
 
 export function useCharacterController(rigidBodyRef: React.RefObject<RapierRigidBody | null>) {
   const { camera } = useThree();
@@ -26,18 +29,21 @@ export function useCharacterController(rigidBodyRef: React.RefObject<RapierRigid
     right: false,
     attack: false,
     special: false,
-    emote: false
+    emote: false,
+    jump: false
   });
 
   const { setAnimationState, setPlayerPosition } = useGameStore();
   const currentAnimation = useRef<AnimationState>('idle');
   const attackCooldown = useRef(false);
   const specialCooldown = useRef(false);
+  const verticalVelocity = useRef(0);
   const targetRotation = useRef(0);
 
   // Reusable vectors for camera-relative movement
   const cameraForward = useRef(new Vector3());
   const cameraRight = useRef(new Vector3());
+  const moveDirection = useRef(new Vector3());
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     switch (e.code) {
@@ -57,8 +63,11 @@ export function useCharacterController(rigidBodyRef: React.RefObject<RapierRigid
       case 'ArrowRight':
         setKeys(k => ({ ...k, right: true }));
         break;
-      case 'Space':
+      case 'KeyR':
         setKeys(k => ({ ...k, attack: true }));
+        break;
+      case 'Space':
+        setKeys(k => ({ ...k, jump: true }));
         break;
       case 'KeyE':
         setKeys(k => ({ ...k, special: true }));
@@ -87,8 +96,11 @@ export function useCharacterController(rigidBodyRef: React.RefObject<RapierRigid
       case 'ArrowRight':
         setKeys(k => ({ ...k, right: false }));
         break;
-      case 'Space':
+      case 'KeyR':
         setKeys(k => ({ ...k, attack: false }));
+        break;
+      case 'Space':
+        setKeys(k => ({ ...k, jump: false }));
         break;
       case 'KeyE':
         setKeys(k => ({ ...k, special: false }));
@@ -112,60 +124,77 @@ export function useCharacterController(rigidBodyRef: React.RefObject<RapierRigid
     if (!rigidBodyRef.current) return;
 
     const rigidBody = rigidBodyRef.current;
-    const velocity = new Vector3(0, 0, 0);
+    const currentPos = rigidBody.translation();
     let isMoving = false;
 
-    // Get camera forward direction (points toward what camera looks at)
-    // We negate it because "forward" for the player means away from camera
+    // Get camera forward direction
     camera.getWorldDirection(cameraForward.current);
     cameraForward.current.y = 0;
     cameraForward.current.normalize();
 
-    // Right vector is perpendicular to forward on XZ plane (cross product with Y-up)
+    // Right vector is perpendicular to forward on XZ plane
     cameraRight.current.set(-cameraForward.current.z, 0, cameraForward.current.x);
 
     // Build movement direction relative to camera
+    moveDirection.current.set(0, 0, 0);
     if (keys.forward) {
-      velocity.add(cameraForward.current);
+      moveDirection.current.add(cameraForward.current);
       isMoving = true;
     }
     if (keys.backward) {
-      velocity.sub(cameraForward.current);
+      moveDirection.current.sub(cameraForward.current);
       isMoving = true;
     }
     if (keys.left) {
-      velocity.sub(cameraRight.current);
+      moveDirection.current.sub(cameraRight.current);
       isMoving = true;
     }
     if (keys.right) {
-      velocity.add(cameraRight.current);
+      moveDirection.current.add(cameraRight.current);
       isMoving = true;
     }
 
     if (isMoving) {
-      velocity.normalize().multiplyScalar(MOVE_SPEED);
-      // Character faces movement direction
-      targetRotation.current = Math.atan2(velocity.x, velocity.z);
+      moveDirection.current.normalize();
+      targetRotation.current = Math.atan2(moveDirection.current.x, moveDirection.current.z);
     }
 
-    const currentVel = rigidBody.linvel();
-    rigidBody.setLinvel({ x: velocity.x, y: currentVel.y, z: velocity.z }, true);
+    // Check if grounded (close to ground level or below)
+    const isGrounded = currentPos.y <= 0.5;
 
+    // Apply gravity or jump
+    if (isGrounded && verticalVelocity.current <= 0) {
+      verticalVelocity.current = 0;
+      if (keys.jump) {
+        verticalVelocity.current = JUMP_VELOCITY;
+      }
+    } else {
+      verticalVelocity.current -= GRAVITY * delta;
+    }
+
+    // Calculate new position
+    const newX = currentPos.x + moveDirection.current.x * MOVE_SPEED * delta;
+    const newY = Math.max(0.4, currentPos.y + verticalVelocity.current * delta);
+    const newZ = currentPos.z + moveDirection.current.z * MOVE_SPEED * delta;
+
+    // Set kinematic position
+    rigidBody.setNextKinematicTranslation({ x: newX, y: newY, z: newZ });
+
+    // Handle rotation
     const currentRotation = rigidBody.rotation();
     const currentEuler = Math.atan2(
       2 * (currentRotation.w * currentRotation.y),
       1 - 2 * currentRotation.y * currentRotation.y
     );
     const newRotation = currentEuler + (targetRotation.current - currentEuler) * ROTATION_SPEED * delta;
-    rigidBody.setRotation({
+    rigidBody.setNextKinematicRotation({
       x: 0,
       y: Math.sin(newRotation / 2),
       z: 0,
       w: Math.cos(newRotation / 2)
-    }, true);
+    });
 
-    const pos = rigidBody.translation();
-    setPlayerPosition([pos.x, pos.y, pos.z]);
+    setPlayerPosition([newX, newY, newZ]);
 
     let newAnimation: AnimationState = 'idle';
 

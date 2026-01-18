@@ -37,7 +37,9 @@ function GameScene() {
       )}
 
       {/* Boss fight */}
-      <Boss position={[0, 2, -8]} onDefeated={handleBossDefeated} />
+      <Suspense fallback={null}>
+        <Boss position={[0, 2, -8]} onDefeated={handleBossDefeated} />
+      </Suspense>
     </Physics>
   );
 }
