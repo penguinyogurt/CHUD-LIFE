@@ -56,14 +56,14 @@ export function HealthBar() {
     <div
       style={{
         position: 'absolute',
-        top: '20px',
+        bottom: '100px',
         left: '20px',
         width: '200px',
         height: '20px',
         background: 'rgba(0, 0, 0, 0.5)',
         borderRadius: '10px',
         overflow: 'hidden',
-        border: '2px solid #e94560'
+        border: '2px solid #4ade80'
       }}
     >
       <div
@@ -87,6 +87,89 @@ export function HealthBar() {
         }}
       >
         {health} / {maxHealth}
+      </div>
+    </div>
+  );
+}
+
+export function BossHealthBar() {
+  const { health, maxHealth, isDead } = useGameStore((state) => state.boss);
+  const percentage = (health / maxHealth) * 100;
+
+  if (isDead) {
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          color: '#ef4444',
+          fontSize: '24px',
+          fontWeight: 'bold',
+          textShadow: '2px 2px 4px black'
+        }}
+      >
+        CHUD KING DEFEATED!
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: '20px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '5px'
+      }}
+    >
+      <div
+        style={{
+          color: '#ef4444',
+          fontSize: '18px',
+          fontWeight: 'bold',
+          textShadow: '2px 2px 4px black'
+        }}
+      >
+        CHUD KING
+      </div>
+      <div
+        style={{
+          width: '300px',
+          height: '24px',
+          background: 'rgba(0, 0, 0, 0.7)',
+          borderRadius: '12px',
+          overflow: 'hidden',
+          border: '2px solid #ef4444'
+        }}
+      >
+        <div
+          style={{
+            width: `${percentage}%`,
+            height: '100%',
+            background: 'linear-gradient(to right, #dc2626, #ef4444)',
+            transition: 'width 0.3s ease'
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            color: 'white',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            textShadow: '1px 1px 2px black'
+          }}
+        >
+          {health} / {maxHealth}
+        </div>
       </div>
     </div>
   );

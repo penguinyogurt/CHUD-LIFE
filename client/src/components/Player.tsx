@@ -11,7 +11,7 @@ interface PlayerProps {
   position?: [number, number, number];
 }
 
-const LOOP_ONCE_ANIMATIONS: AnimationState[] = ['attack', 'emote'];
+const LOOP_ONCE_ANIMATIONS: AnimationState[] = ['attack', 'special', 'emote'];
 
 function PlayerModel({ modelUrl }: { modelUrl: string }) {
   const { scene } = useGLTF(modelUrl);
@@ -136,13 +136,13 @@ function PlayerModel({ modelUrl }: { modelUrl: string }) {
     mixerRef.current?.update(delta);
   });
 
-  return <primitive object={scene} scale={1} />;
+  return <primitive object={scene} scale={0.4} />;
 }
 
 function FallbackPlayer() {
   return (
     <mesh castShadow>
-      <capsuleGeometry args={[0.4, 1, 4, 8]} />
+      <capsuleGeometry args={[0.15, 0.4, 4, 8]} />
       <meshStandardMaterial color="#e94560" />
     </mesh>
   );
@@ -165,7 +165,7 @@ export function Player({ modelUrl, position = [0, 2, 0] }: PlayerProps) {
       angularDamping={5}
       lockRotations
     >
-      <CapsuleCollider args={[0.5, 0.4]} position={[0, 0.9, 0]} />
+      <CapsuleCollider args={[0.2, 0.15]} position={[0, 0.35, 0]} />
       <group position={[0, 0, 0]}>
         <Suspense fallback={<FallbackPlayer />}>
           <PlayerModel modelUrl={proxiedUrl} />

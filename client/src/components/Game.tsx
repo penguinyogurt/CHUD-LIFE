@@ -1,10 +1,12 @@
 import { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Physics } from '@react-three/rapier';
-import { OrbitControls, PerspectiveCamera, Environment, Stats } from '@react-three/drei';
-import { Arena, Lights } from './Arena';
+import { PerspectiveCamera, Environment } from '@react-three/drei';
+import { Forest, ForestLights } from './Forest';
 import { Player } from './Player';
-import { DummyEnemy, HealthBar, ControlsHint } from './Combat';
+import { Boss } from './Boss';
+import { ThirdPersonCamera } from './ThirdPersonCamera';
+import { HealthBar, BossHealthBar, ControlsHint } from './Combat';
 import { useGameStore } from '../stores/gameStore';
 
 function LoadingScreen() {
@@ -19,25 +21,23 @@ function LoadingScreen() {
 function GameScene() {
   const characterModelUrl = useGameStore((state) => state.characterModelUrl);
 
-  const handleEnemyHit = () => {
-    // Collision with enemy - could trigger damage or other effects
+  const handleBossDefeated = () => {
+    console.log('Boss defeated!');
   };
 
   return (
     <Physics gravity={[0, -20, 0]} debug={false}>
-      <Arena />
-      <Lights />
+      <Forest />
+      <ForestLights />
 
       {characterModelUrl && (
         <Suspense fallback={<LoadingScreen />}>
-          <Player modelUrl={characterModelUrl} position={[0, 2, 5]} />
+          <Player modelUrl={characterModelUrl} position={[0, 5, 0]} />
         </Suspense>
       )}
 
-      {/* Practice dummy enemies */}
-      <DummyEnemy position={[-5, 0, -5]} onHit={handleEnemyHit} />
-      <DummyEnemy position={[5, 0, -5]} onHit={handleEnemyHit} />
-      <DummyEnemy position={[0, 0, -10]} onHit={handleEnemyHit} />
+      {/* Boss fight */}
+      <Boss position={[0, 2, -8]} onDefeated={handleBossDefeated} />
     </Physics>
   );
 }
@@ -46,27 +46,24 @@ export function Game() {
   return (
     <div style={{ width: '100%', height: '100vh', position: 'relative', overflow: 'hidden' }}>
       <Canvas shadows>
-        <color attach="background" args={['#0a0a1a']} />
-        <fog attach="fog" args={['#0a0a1a', 30, 60]} />
+        <color attach="background" args={['#87ceeb']} />
+        <fog attach="fog" args={['#a8d5ba', 40, 120]} />
 
-        <PerspectiveCamera makeDefault position={[0, 10, 15]} fov={60} />
-        <OrbitControls
-          target={[0, 1, 0]}
-          maxPolarAngle={Math.PI / 2.2}
-          minDistance={5}
-          maxDistance={30}
-          enablePan={false}
+        <PerspectiveCamera makeDefault position={[0, 5, 10]} fov={60} />
+        <ThirdPersonCamera
+          minDistance={1.5}
+          maxDistance={15}
+          offset={[0, 0.6, 0]}
         />
 
         <Suspense fallback={<LoadingScreen />}>
           <GameScene />
-          <Environment preset="night" />
+          <Environment preset="forest" />
         </Suspense>
-
-        <Stats />
       </Canvas>
 
       {/* UI Overlay */}
+      <BossHealthBar />
       <HealthBar />
       <ControlsHint />
 
@@ -76,11 +73,11 @@ export function Game() {
           position: 'absolute',
           top: '20px',
           right: '20px',
-          color: '#e94560',
+          color: '#2d5a27',
           fontSize: '24px',
           fontWeight: 'bold',
           fontFamily: 'system-ui',
-          textShadow: '0 0 10px rgba(233, 69, 96, 0.5)'
+          textShadow: '0 0 10px rgba(45, 90, 39, 0.5), 2px 2px 0 #fff'
         }}
       >
         CHUDLIFE

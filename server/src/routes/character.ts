@@ -23,6 +23,7 @@ interface GenerateResponse {
     idle?: string;
     walking?: string;
     attack?: string;
+    special?: string;
     emote?: string;
   };
   error?: string;
@@ -31,7 +32,8 @@ interface GenerateResponse {
 const ANIMATION_IDS = {
   idle: 0,
   walking: 1,
-  attack: 205,
+  attack: 4,      // Basic Attack animation
+  special: 92,    // Double_Combo_Attack
   emote: 74
 };
 
@@ -105,6 +107,94 @@ router.post('/create', upload.single('image'), async (req: Request, res: Respons
 // Diagnostic route
 router.get('/create', (req: Request, res: Response) => {
   res.status(405).json({ status: 'failed', error: 'Use POST' });
+});
+
+// SSE Streaming endpoint for real-time progress
+router.post('/create-stream', upload.single('image'), async (req: Request, res: Response) => {
+  // Set up SSE headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.flushHeaders();
+
+  const sendEvent = (data: object) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  try {
+    let imageUrl: string;
+
+    if (req.file) {
+      const base64 = req.file.buffer.toString('base64');
+      const mimeType = req.file.mimetype;
+      imageUrl = `data:${mimeType};base64,${base64}`;
+      sendEvent({ message: 'Image received and processed' });
+    } else if (req.body.imageUrl) {
+      imageUrl = req.body.imageUrl;
+      sendEvent({ message: 'Image URL received' });
+    } else {
+      sendEvent({ status: 'error', error: 'No image provided' });
+      res.end();
+      return;
+    }
+
+    sendEvent({ message: 'Starting 3D generation pipeline...' });
+
+    // Step 1: 3D Generation
+    sendEvent({ message: 'Converting image to 3D model with Hunyuan 3D v3...' });
+    const glbModelUrl = await convertImageTo3D(imageUrl);
+    sendEvent({ message: '3D model generated successfully' });
+
+    // Step 1.5: Retexturing
+    sendEvent({ message: 'Applying textures with Meshy.ai...' });
+    const retextureTaskId = await startRetexturingTask(glbModelUrl, imageUrl);
+    sendEvent({ message: 'Retexturing task started, waiting for completion...' });
+    const retextureResult = await waitForRetexturingCompletion(retextureTaskId);
+    sendEvent({ message: 'Texturing complete' });
+
+    // Step 2: Rigging
+    sendEvent({ message: 'Rigging model for animation...' });
+    const rigOutput = await rigModel(retextureResult.modelUrl, retextureResult.textureUrl);
+    const riggedModelUrl = rigOutput.result?.rigged_character_glb_url || rigOutput.result?.glb_url;
+    const rigTaskId = rigOutput.id;
+    sendEvent({ message: 'Model rigged successfully' });
+
+    // Step 3: Animations
+    sendEvent({ message: 'Generating animations...' });
+    const animationTaskPromises = Object.entries(ANIMATION_IDS).map(async ([key, actionId]) => {
+      try {
+        sendEvent({ message: `Starting ${key} animation generation...` });
+        const taskId = await startAnimationTask(rigTaskId, actionId);
+        const url = await waitForAnimationCompletion(taskId);
+        sendEvent({ message: `${key} animation complete` });
+        return { [key]: url };
+      } catch (err) {
+        sendEvent({ message: `Warning: ${key} animation failed` });
+        return { [key]: null };
+      }
+    });
+
+    const animationResults = await Promise.all(animationTaskPromises);
+    const animations = Object.assign({}, ...animationResults);
+
+    sendEvent({ message: 'All animations generated' });
+    sendEvent({
+      status: 'complete',
+      riggedModelUrl,
+      glbModelUrl,
+      animations
+    });
+
+  } catch (error) {
+    console.error('Character generation error:', error);
+    sendEvent({
+      status: 'error',
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    });
+  }
+
+  res.end();
 });
 
 router.get('/status', (req: Request, res: Response) => {

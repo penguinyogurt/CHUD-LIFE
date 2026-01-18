@@ -1,13 +1,19 @@
 import { create } from 'zustand';
 
 export type GamePhase = 'upload' | 'loading' | 'playing';
-export type AnimationState = 'idle' | 'walking' | 'attack' | 'emote';
+export type AnimationState = 'idle' | 'walking' | 'attack' | 'special' | 'emote';
 
 interface PlayerState {
   health: number;
   maxHealth: number;
   position: [number, number, number];
   animationState: AnimationState;
+}
+
+interface BossState {
+  health: number;
+  maxHealth: number;
+  isDead: boolean;
 }
 
 interface GameState {
@@ -18,6 +24,7 @@ interface GameState {
   loadingMessage: string;
   error: string | null;
   player: PlayerState;
+  boss: BossState;
 
   setPhase: (phase: GamePhase) => void;
   setCharacterModelUrl: (url: string) => void;
@@ -28,6 +35,8 @@ interface GameState {
   setPlayerPosition: (position: [number, number, number]) => void;
   setAnimationState: (state: AnimationState) => void;
   takeDamage: (amount: number) => void;
+  setBossHealth: (health: number) => void;
+  setBossDead: (isDead: boolean) => void;
   reset: () => void;
 }
 
@@ -38,6 +47,12 @@ const initialPlayerState: PlayerState = {
   animationState: 'idle'
 };
 
+const initialBossState: BossState = {
+  health: 100,
+  maxHealth: 100,
+  isDead: false
+};
+
 export const useGameStore = create<GameState>((set) => ({
   phase: 'upload',
   characterModelUrl: null,
@@ -46,6 +61,7 @@ export const useGameStore = create<GameState>((set) => ({
   loadingMessage: '',
   error: null,
   player: initialPlayerState,
+  boss: initialBossState,
 
   setPhase: (phase) => set({ phase }),
   setCharacterModelUrl: (url) => set({ characterModelUrl: url }),
@@ -64,6 +80,12 @@ export const useGameStore = create<GameState>((set) => ({
   takeDamage: (amount) => set((state) => ({
     player: { ...state.player, health: Math.max(0, state.player.health - amount) }
   })),
+  setBossHealth: (health) => set((state) => ({
+    boss: { ...state.boss, health: Math.max(0, Math.min(health, state.boss.maxHealth)) }
+  })),
+  setBossDead: (isDead) => set((state) => ({
+    boss: { ...state.boss, isDead }
+  })),
   reset: () => set({
     phase: 'upload',
     characterModelUrl: null,
@@ -71,6 +93,7 @@ export const useGameStore = create<GameState>((set) => ({
     isLoading: false,
     loadingMessage: '',
     error: null,
-    player: initialPlayerState
+    player: initialPlayerState,
+    boss: initialBossState
   })
 }));

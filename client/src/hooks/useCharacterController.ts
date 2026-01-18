@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Vector3 } from 'three';
 import { RapierRigidBody } from '@react-three/rapier';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useGameStore, AnimationState } from '../stores/gameStore';
 
 interface KeyState {
@@ -14,10 +14,11 @@ interface KeyState {
   emote: boolean;
 }
 
-const MOVE_SPEED = 8;
+const MOVE_SPEED = 1.5; // Adjusted for smaller character scale
 const ROTATION_SPEED = 10;
 
 export function useCharacterController(rigidBodyRef: React.RefObject<RapierRigidBody | null>) {
+  const { camera } = useThree();
   const [keys, setKeys] = useState<KeyState>({
     forward: false,
     backward: false,
@@ -33,6 +34,10 @@ export function useCharacterController(rigidBodyRef: React.RefObject<RapierRigid
   const attackCooldown = useRef(false);
   const specialCooldown = useRef(false);
   const targetRotation = useRef(0);
+
+  // Reusable vectors for camera-relative movement
+  const cameraForward = useRef(new Vector3());
+  const cameraRight = useRef(new Vector3());
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     switch (e.code) {
@@ -110,25 +115,36 @@ export function useCharacterController(rigidBodyRef: React.RefObject<RapierRigid
     const velocity = new Vector3(0, 0, 0);
     let isMoving = false;
 
+    // Get camera forward direction (points toward what camera looks at)
+    // We negate it because "forward" for the player means away from camera
+    camera.getWorldDirection(cameraForward.current);
+    cameraForward.current.y = 0;
+    cameraForward.current.normalize();
+
+    // Right vector is perpendicular to forward on XZ plane (cross product with Y-up)
+    cameraRight.current.set(-cameraForward.current.z, 0, cameraForward.current.x);
+
+    // Build movement direction relative to camera
     if (keys.forward) {
-      velocity.z -= 1;
+      velocity.add(cameraForward.current);
       isMoving = true;
     }
     if (keys.backward) {
-      velocity.z += 1;
+      velocity.sub(cameraForward.current);
       isMoving = true;
     }
     if (keys.left) {
-      velocity.x -= 1;
+      velocity.sub(cameraRight.current);
       isMoving = true;
     }
     if (keys.right) {
-      velocity.x += 1;
+      velocity.add(cameraRight.current);
       isMoving = true;
     }
 
     if (isMoving) {
       velocity.normalize().multiplyScalar(MOVE_SPEED);
+      // Character faces movement direction
       targetRotation.current = Math.atan2(velocity.x, velocity.z);
     }
 
