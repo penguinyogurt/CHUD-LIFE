@@ -15,7 +15,7 @@ interface KeyState {
   jump: boolean;
 }
 
-const MOVE_SPEED = 5; // Movement speed (units per second)
+const MOVE_SPEED = 2; // Movement speed (units per second)
 const ROTATION_SPEED = 10;
 const JUMP_VELOCITY = 8;
 const GRAVITY = 20;
