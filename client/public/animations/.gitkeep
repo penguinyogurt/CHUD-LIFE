@@ -1,0 +1,12 @@
+# Place Mixamo FBX animations here:
+# - idle.fbx
+# - walking.fbx
+# - attack.fbx
+# - special.fbx
+# - emote.fbx
+#
+# Download from Mixamo (mixamo.com) with these settings:
+# - Format: FBX Binary (.fbx)
+# - Skin: Without Skin (for retargeting to any rig)
+# - Frames: Use default
+# - Keyframe Reduction: none
