@@ -31,9 +31,9 @@ interface GenerateResponse {
 
 const ANIMATION_IDS = {
   idle: 0,
-  walking: 1,
-  attack: 4,      // Basic Attack animation
-  special: 92,    // Double_Combo_Attack
+  walking: 1,    
+  attack: 206,    // Spartan Kick
+  special: 452,   // Backflip
   emote: 74
 };
 

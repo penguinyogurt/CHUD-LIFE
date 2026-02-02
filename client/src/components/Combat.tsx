@@ -73,9 +73,10 @@ export function HealthBar() {
 
 export function BossHealthBar() {
   const { health, maxHealth, isDead } = useGameStore((state) => state.boss);
+  const [dismissed, setDismissed] = useState(false);
   const percentage = (health / maxHealth) * 100;
 
-  if (isDead) {
+  if (isDead && !dismissed) {
     return (
       <div
         style={{
@@ -86,7 +87,9 @@ export function BossHealthBar() {
           textAlign: 'center',
           padding: '40px 60px',
           background: 'rgba(0, 0, 0, 0.9)',
+          cursor: 'pointer',
         }}
+        onClick={() => setDismissed(true)}
       >
         <CornerBrackets size={20} />
         <div
@@ -108,9 +111,20 @@ export function BossHealthBar() {
             fontSize: '12px',
             color: 'rgba(255,255,255,0.6)',
             letterSpacing: '0.3em',
+            marginBottom: '16px',
           }}
         >
           TARGET ELIMINATED
+        </div>
+        <div
+          style={{
+            fontFamily: terminalFont,
+            fontSize: '10px',
+            color: 'rgba(255,255,255,0.4)',
+            letterSpacing: '0.1em',
+          }}
+        >
+          [ CLICK TO DISMISS ]
         </div>
       </div>
     );

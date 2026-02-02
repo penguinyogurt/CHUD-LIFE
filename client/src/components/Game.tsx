@@ -155,11 +155,11 @@ function TacticalFrame() {
         COMBAT_ARENA_01
       </div>
 
-      {/* Top right tactical text */}
+      {/* Top right tactical text - moved down to avoid title overlap */}
       <div
         style={{
           position: 'absolute',
-          top: 20,
+          top: 60,
           right: 60,
           fontFamily: terminalFont,
           fontSize: '9px',
@@ -170,12 +170,13 @@ function TacticalFrame() {
         SYS:ACTIVE
       </div>
 
-      {/* Bottom left coordinates */}
+      {/* Bottom left coordinates - moved to avoid HUD overlap */}
       <div
         style={{
           position: 'absolute',
           bottom: 18,
-          left: 60,
+          left: '50%',
+          transform: 'translateX(-120px)',
           fontFamily: terminalFont,
           fontSize: '9px',
           color: `${terminalGreen}60`,
@@ -185,12 +186,13 @@ function TacticalFrame() {
         GRID:X0.Y0.Z0
       </div>
 
-      {/* Bottom right status */}
+      {/* Bottom right status - moved to avoid HUD overlap */}
       <div
         style={{
           position: 'absolute',
           bottom: 18,
-          right: 60,
+          left: '50%',
+          transform: 'translateX(40px)',
           fontFamily: terminalFont,
           fontSize: '9px',
           color: `${terminalGreen}60`,

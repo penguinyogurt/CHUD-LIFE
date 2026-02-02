@@ -37,6 +37,7 @@ export function useCharacterController(rigidBodyRef: React.RefObject<RapierRigid
   const currentAnimation = useRef<AnimationState>('idle');
   const attackCooldown = useRef(false);
   const specialCooldown = useRef(false);
+  const oneShotPlaying = useRef(false); // Lock to prevent interrupting one-shot animations
   const verticalVelocity = useRef(0);
   const targetRotation = useRef(0);
 
@@ -196,20 +197,34 @@ export function useCharacterController(rigidBodyRef: React.RefObject<RapierRigid
 
     setPlayerPosition([newX, newY, newZ]);
 
+    // Don't change animation while a one-shot animation is playing
+    if (oneShotPlaying.current) return;
+
     let newAnimation: AnimationState = 'idle';
 
     if (keys.attack && !attackCooldown.current) {
       newAnimation = 'attack';
+      oneShotPlaying.current = true;
       attackCooldown.current = true;
+      // Lock for animation duration + small buffer, then allow cooldown reset
+      setTimeout(() => {
+        oneShotPlaying.current = false;
+        currentAnimation.current = 'idle';
+      }, 1500); // Attack animation duration
       setTimeout(() => {
         attackCooldown.current = false;
-      }, 500);
+      }, 2000);
     } else if (keys.special && !specialCooldown.current) {
       newAnimation = 'special';
+      oneShotPlaying.current = true;
       specialCooldown.current = true;
       setTimeout(() => {
+        oneShotPlaying.current = false;
+        currentAnimation.current = 'idle';
+      }, 2200); // Special animation duration
+      setTimeout(() => {
         specialCooldown.current = false;
-      }, 1000);
+      }, 2700);
     } else if (keys.emote) {
       newAnimation = 'emote';
     } else if (isMoving) {

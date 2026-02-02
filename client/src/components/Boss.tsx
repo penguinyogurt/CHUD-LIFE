@@ -12,7 +12,8 @@ interface BossProps {
 
 const HIT_DAMAGE = 10;
 const HIT_RANGE = 2;
-const HIT_COOLDOWN = 500;
+const ATTACK_COOLDOWN = 1500;  // Match attack animation duration
+const SPECIAL_COOLDOWN = 2200; // Match special animation duration
 
 export function Boss({ position, onDefeated }: BossProps) {
   const { scene } = useGLTF('/boss.glb');
@@ -43,8 +44,9 @@ export function Boss({ position, onDefeated }: BossProps) {
 
     const isAttacking = playerAnimationState === 'attack' || playerAnimationState === 'special';
     const now = Date.now();
+    const cooldown = playerAnimationState === 'special' ? SPECIAL_COOLDOWN : ATTACK_COOLDOWN;
 
-    if (isAttacking && now - lastHitTime.current > HIT_COOLDOWN) {
+    if (isAttacking && now - lastHitTime.current > cooldown) {
       const playerPos = new Vector3(...playerPosition);
       const distance = playerPos.distanceTo(bossPosition.current);
 

@@ -2,7 +2,7 @@ import { useRef, useEffect, Suspense } from 'react';
 import { RigidBody, CapsuleCollider, RapierRigidBody } from '@react-three/rapier';
 import { useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { AnimationMixer, AnimationAction, LoopOnce, LoopRepeat, Object3D, SkinnedMesh } from 'three';
+import { AnimationMixer, AnimationAction, LoopOnce, LoopRepeat, Object3D } from 'three';
 import { useCharacterController } from '../hooks/useCharacterController';
 import { useGameStore, AnimationState } from '../stores/gameStore';
 
@@ -27,7 +27,7 @@ function PlayerModel({ modelUrl }: { modelUrl: string }) {
     scene.scale.set(0.4, 0.4, 0.4);
 
     scene.traverse((child: Object3D) => {
-      if ((child as SkinnedMesh).isMesh) {
+      if ('isMesh' in child && child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
       }
@@ -47,18 +47,26 @@ function PlayerModel({ modelUrl }: { modelUrl: string }) {
 
       if (!animations) return;
 
-      for (const [name, url] of Object.entries(animations)) {
+      // Load idle first so character isn't stuck in T-pose
+      const loadOrder = ['idle', ...Object.keys(animations).filter(k => k !== 'idle')];
+
+      for (const name of loadOrder) {
+        const url = animations[name as keyof typeof animations];
         if (!url) continue;
         try {
           const gltf = await loader.loadAsync(getProxiedUrl(url));
           if (gltf.animations.length > 0) {
             const clip = gltf.animations[0];
             clip.name = name;
-            
-            // Cleanup track names if they have prefixes like 'Armature|' or 'mixamorig'
+
+            // Remove root position and scale tracks - different animations have incompatible values
+            clip.tracks = clip.tracks.filter(track =>
+              track.name !== 'Hips.position' && !track.name.endsWith('.scale')
+            );
+
+            // Cleanup track names - remove prefixes and fix bone name mismatches
             clip.tracks.forEach(track => {
-              track.name = track.name.replace(/^(mixamorig|Armature|Scene).*?/, '');
-              // Standard Meshy -> Three.js track cleanup
+              track.name = track.name.replace(/^(mixamorig|Armature|Scene)[:|]?/, '');
               if (track.name.includes('.')) {
                 const parts = track.name.split('.');
                 const prop = parts.pop();
@@ -80,17 +88,35 @@ function PlayerModel({ modelUrl }: { modelUrl: string }) {
             }
 
             actionsRef.current.set(name, action);
+
+            // Start idle immediately so player isn't in T-pose while other anims load
+            if (name === 'idle') {
+              action.play();
+              currentActionRef.current = 'idle';
+            }
           }
+
+          // Dispose of the loaded scene to free memory (we only need the animation clip)
+          gltf.scene.traverse((child: Object3D) => {
+            if ('geometry' in child && child.geometry) {
+              (child.geometry as any).dispose();
+            }
+            if ('material' in child && child.material) {
+              const materials = Array.isArray(child.material) ? child.material : [child.material];
+              materials.forEach((mat: any) => {
+                if (mat.map) mat.map.dispose();
+                if (mat.normalMap) mat.normalMap.dispose();
+                if (mat.roughnessMap) mat.roughnessMap.dispose();
+                if (mat.metalnessMap) mat.metalnessMap.dispose();
+                mat.dispose();
+              });
+            }
+          });
         } catch (err) {
-          console.warn(`Could not load Meshy animation ${name}:`, err);
+          console.warn(`Failed to load animation ${name}:`, err);
         }
       }
 
-      const idleAction = actionsRef.current.get('idle');
-      if (idleAction) {
-        idleAction.play();
-        currentActionRef.current = 'idle';
-      }
     };
 
     loadAnimations();
@@ -110,11 +136,23 @@ function PlayerModel({ modelUrl }: { modelUrl: string }) {
 
     if (currentActionRef.current === animationState) return;
 
+    const clip = newAction.getClip();
+
     newAction.reset();
+    newAction.setEffectiveWeight(1);
+
+    // Slow down very short animations so they're visible
+    const MIN_DURATION = 0.8;
+    if (LOOP_ONCE_ANIMATIONS.includes(animationState) && clip.duration < MIN_DURATION) {
+      newAction.setEffectiveTimeScale(clip.duration / MIN_DURATION);
+    } else {
+      newAction.setEffectiveTimeScale(1);
+    }
+
     newAction.play();
 
     if (prevAction) {
-      newAction.crossFadeFrom(prevAction, 0.2, true);
+      prevAction.crossFadeTo(newAction, 0.15, true);
     }
 
     currentActionRef.current = animationState;
@@ -125,7 +163,7 @@ function PlayerModel({ modelUrl }: { modelUrl: string }) {
         if (idleAction && currentActionRef.current !== 'idle') {
           idleAction.reset();
           idleAction.play();
-          idleAction.crossFadeFrom(newAction, 0.2, true);
+          idleAction.crossFadeFrom(newAction, 0.15, true);
           currentActionRef.current = 'idle';
           setAnimationState('idle');
         }
