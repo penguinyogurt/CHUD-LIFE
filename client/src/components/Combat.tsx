@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody, CuboidCollider, RapierRigidBody } from '@react-three/rapier';
 import { Mesh, MeshStandardMaterial } from 'three';
@@ -39,7 +39,6 @@ export function DummyEnemy({ position, onHit }: DummyEnemyProps) {
         <capsuleGeometry args={[0.5, 1, 4, 8]} />
         <meshStandardMaterial color="#ff6b6b" emissive="#ffffff" emissiveIntensity={0} />
       </mesh>
-      {/* Enemy indicator */}
       <mesh position={[0, 2.5, 0]}>
         <sphereGeometry args={[0.2]} />
         <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.5} />
@@ -48,48 +47,28 @@ export function DummyEnemy({ position, onHit }: DummyEnemyProps) {
   );
 }
 
-export function HealthBar() {
-  const { health, maxHealth } = useGameStore((state) => state.player);
-  const percentage = (health / maxHealth) * 100;
+// Terminal green theme
+const terminalGreen = '#22c55e';
+const terminalFont = "'JetBrains Mono', 'Fira Code', monospace";
+
+// Corner brackets component
+function CornerBrackets({ size = 12, color = terminalGreen }: { size?: number; color?: string }) {
+  const style = { position: 'absolute' as const, width: size, height: size };
+  const borderStyle = `2px solid ${color}`;
 
   return (
-    <div
-      style={{
-        position: 'absolute',
-        bottom: '100px',
-        left: '20px',
-        width: '200px',
-        height: '20px',
-        background: 'rgba(0, 0, 0, 0.5)',
-        borderRadius: '10px',
-        overflow: 'hidden',
-        border: '2px solid #4ade80'
-      }}
-    >
-      <div
-        style={{
-          width: `${percentage}%`,
-          height: '100%',
-          background: percentage > 50 ? '#4ade80' : percentage > 25 ? '#fbbf24' : '#ef4444',
-          transition: 'width 0.3s ease'
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          color: 'white',
-          fontSize: '12px',
-          fontWeight: 'bold',
-          textShadow: '1px 1px 2px black'
-        }}
-      >
-        {health} / {maxHealth}
-      </div>
-    </div>
+    <>
+      <div style={{ ...style, top: 0, left: 0, borderTop: borderStyle, borderLeft: borderStyle }} />
+      <div style={{ ...style, top: 0, right: 0, borderTop: borderStyle, borderRight: borderStyle }} />
+      <div style={{ ...style, bottom: 0, left: 0, borderBottom: borderStyle, borderLeft: borderStyle }} />
+      <div style={{ ...style, bottom: 0, right: 0, borderBottom: borderStyle, borderRight: borderStyle }} />
+    </>
   );
+}
+
+export function HealthBar() {
+  // Health bar is now integrated into ControlsHint
+  return null;
 }
 
 export function BossHealthBar() {
@@ -101,16 +80,38 @@ export function BossHealthBar() {
       <div
         style={{
           position: 'absolute',
-          top: '20px',
+          top: '50%',
           left: '50%',
-          transform: 'translateX(-50%)',
-          color: '#ef4444',
-          fontSize: '24px',
-          fontWeight: 'bold',
-          textShadow: '2px 2px 4px black'
+          transform: 'translate(-50%, -50%)',
+          textAlign: 'center',
+          padding: '40px 60px',
+          background: 'rgba(0, 0, 0, 0.9)',
         }}
       >
-        CHUD KING DEFEATED!
+        <CornerBrackets size={20} />
+        <div
+          style={{
+            fontFamily: terminalFont,
+            fontSize: '48px',
+            fontWeight: 500,
+            color: terminalGreen,
+            letterSpacing: '0.2em',
+            textShadow: `0 0 30px ${terminalGreen}`,
+            marginBottom: '8px',
+          }}
+        >
+          VICTORY
+        </div>
+        <div
+          style={{
+            fontFamily: terminalFont,
+            fontSize: '12px',
+            color: 'rgba(255,255,255,0.6)',
+            letterSpacing: '0.3em',
+          }}
+        >
+          TARGET ELIMINATED
+        </div>
       </div>
     );
   }
@@ -125,77 +126,239 @@ export function BossHealthBar() {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '5px'
+        gap: '8px',
       }}
     >
+      {/* Boss name */}
       <div
         style={{
+          fontFamily: terminalFont,
+          fontSize: '12px',
           color: '#ef4444',
-          fontSize: '18px',
-          fontWeight: 'bold',
-          textShadow: '2px 2px 4px black'
+          letterSpacing: '0.3em',
+          textTransform: 'uppercase',
         }}
       >
-        CHUD KING
+        ◆ CHUD_KING ◆
       </div>
+
+      {/* Health bar container */}
       <div
         style={{
-          width: '300px',
-          height: '24px',
-          background: 'rgba(0, 0, 0, 0.7)',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          border: '2px solid #ef4444'
+          position: 'relative',
+          width: '320px',
+          height: '20px',
+          background: 'rgba(0, 0, 0, 0.8)',
+          padding: '3px',
         }}
       >
+        <CornerBrackets size={10} color="#ef4444" />
+
+        {/* Health fill */}
         <div
           style={{
-            width: `${percentage}%`,
             height: '100%',
-            background: 'linear-gradient(to right, #dc2626, #ef4444)',
-            transition: 'width 0.3s ease'
+            width: `${percentage}%`,
+            background: 'linear-gradient(90deg, #dc2626, #ef4444)',
+            boxShadow: '0 0 15px rgba(239, 68, 68, 0.4)',
+            transition: 'width 0.3s ease-out',
           }}
         />
+
+        {/* Health text */}
         <div
           style={{
             position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            color: 'white',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            textShadow: '1px 1px 2px black'
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontFamily: terminalFont,
+            fontSize: '10px',
+            color: '#fff',
+            letterSpacing: '0.1em',
           }}
         >
-          {health} / {maxHealth}
+          {health}/{maxHealth}
         </div>
       </div>
     </div>
   );
 }
 
+// Single key component
+interface KeyProps {
+  label: string;
+  isPressed: boolean;
+  width?: number;
+}
+
+function Key({ label, isPressed, width = 32 }: KeyProps) {
+  return (
+    <div
+      style={{
+        width,
+        height: 32,
+        background: isPressed
+          ? terminalGreen
+          : 'rgba(0, 0, 0, 0.9)',
+        border: isPressed
+          ? `1px solid ${terminalGreen}`
+          : '1px solid rgba(34, 197, 94, 0.3)',
+        boxShadow: isPressed
+          ? `0 0 15px ${terminalGreen}, inset 0 0 10px rgba(255,255,255,0.2)`
+          : 'none',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: terminalFont,
+        fontSize: label.length > 1 ? '8px' : '11px',
+        fontWeight: 500,
+        color: isPressed ? '#000' : 'rgba(34, 197, 94, 0.8)',
+        letterSpacing: '0.05em',
+        transition: 'all 0.05s ease-out',
+        userSelect: 'none',
+      }}
+    >
+      {label}
+    </div>
+  );
+}
+
 export function ControlsHint() {
+  const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
+  const { health, maxHealth } = useGameStore((state) => state.player);
+  const percentage = (health / maxHealth) * 100;
+  const isCritical = percentage <= 25;
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    const key = e.key.toLowerCase();
+    setPressedKeys(prev => new Set(prev).add(key));
+  }, []);
+
+  const handleKeyUp = useCallback((e: KeyboardEvent) => {
+    const key = e.key.toLowerCase();
+    setPressedKeys(prev => {
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [handleKeyDown, handleKeyUp]);
+
+  const isPressed = (key: string) => pressedKeys.has(key);
+
   return (
     <div
       style={{
         position: 'absolute',
         bottom: '20px',
         left: '20px',
-        color: 'white',
-        fontSize: '14px',
-        background: 'rgba(0, 0, 0, 0.5)',
-        padding: '15px',
-        borderRadius: '10px',
-        fontFamily: 'monospace'
+        background: 'rgba(0, 0, 0, 0.85)',
+        padding: '16px',
       }}
     >
-      <div style={{ marginBottom: '5px', fontWeight: 'bold', color: '#e94560' }}>Controls</div>
-      <div>WASD / Arrows - Move</div>
-      <div>Space - Jump</div>
-      <div>R - Attack</div>
-      <div>E - Special Attack</div>
-      <div>Q - Emote</div>
+      <CornerBrackets size={10} />
+
+      {/* Health bar at top */}
+      <div style={{ marginBottom: '14px' }}>
+        <div
+          style={{
+            fontFamily: terminalFont,
+            fontSize: '9px',
+            color: terminalGreen,
+            letterSpacing: '0.2em',
+            marginBottom: '6px',
+          }}
+        >
+          ▸ HP
+        </div>
+        <div
+          style={{
+            position: 'relative',
+            width: '100%',
+            height: '14px',
+            background: 'rgba(34, 197, 94, 0.1)',
+            border: `1px solid ${isCritical ? '#ef4444' : 'rgba(34, 197, 94, 0.3)'}`,
+          }}
+        >
+          <div
+            style={{
+              height: '100%',
+              width: `${percentage}%`,
+              background: isCritical ? '#ef4444' : terminalGreen,
+              boxShadow: isCritical
+                ? '0 0 8px rgba(239, 68, 68, 0.5)'
+                : `0 0 8px rgba(34, 197, 94, 0.4)`,
+              transition: 'width 0.2s ease-out',
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontFamily: terminalFont,
+              fontSize: '9px',
+              color: '#fff',
+              letterSpacing: '0.1em',
+            }}
+          >
+            {health}/{maxHealth}
+          </div>
+        </div>
+      </div>
+
+      {/* Keyboard layout */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        {/* QWER row */}
+        <div style={{ display: 'flex', gap: '4px', marginLeft: '4px' }}>
+          <Key label="Q" isPressed={isPressed('q')} />
+          <Key label="W" isPressed={isPressed('w')} />
+          <Key label="E" isPressed={isPressed('e')} />
+          <Key label="R" isPressed={isPressed('r')} />
+        </div>
+
+        {/* ASD row - offset like real keyboard */}
+        <div style={{ display: 'flex', gap: '4px', marginLeft: '12px' }}>
+          <Key label="A" isPressed={isPressed('a')} />
+          <Key label="S" isPressed={isPressed('s')} />
+          <Key label="D" isPressed={isPressed('d')} />
+        </div>
+
+        {/* Spacebar */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '4px' }}>
+          <Key label="SPACE" isPressed={isPressed(' ')} width={108} />
+        </div>
+      </div>
+
+      {/* Mini legend */}
+      <div
+        style={{
+          marginTop: '12px',
+          paddingTop: '10px',
+          borderTop: '1px solid rgba(34, 197, 94, 0.2)',
+          fontFamily: terminalFont,
+          fontSize: '8px',
+          color: 'rgba(255,255,255,0.4)',
+          letterSpacing: '0.1em',
+          lineHeight: 1.8,
+        }}
+      >
+        <div>WASD ─ MOVE</div>
+        <div>SPACE ─ JUMP</div>
+        <div>Q ─ EMOTE &nbsp; R ─ ATTACK &nbsp; E ─ SPECIAL</div>
+      </div>
     </div>
   );
 }

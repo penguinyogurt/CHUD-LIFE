@@ -23,6 +23,9 @@ function PlayerModel({ modelUrl }: { modelUrl: string }) {
   const animations = useGameStore((state) => state.animations);
 
   useEffect(() => {
+    // Apply scale immediately to prevent blob flash on first render
+    scene.scale.set(0.4, 0.4, 0.4);
+
     scene.traverse((child: Object3D) => {
       if ((child as SkinnedMesh).isMesh) {
         child.castShadow = true;
@@ -136,7 +139,7 @@ function PlayerModel({ modelUrl }: { modelUrl: string }) {
     mixerRef.current?.update(delta);
   });
 
-  return <primitive object={scene} scale={0.4} />;
+  return <primitive object={scene} />;
 }
 
 function FallbackPlayer() {
